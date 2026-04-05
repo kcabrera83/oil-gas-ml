@@ -10,17 +10,11 @@ from sklearn.impute import SimpleImputer
 from typing import Tuple, List, Optional
 
 
-def cargar_datos(ruta_archivo: str) -> pd.DataFrame:
+def cargar_datos(ruta_archivo):
     """
-    Carga un archivo CSV y retorna un DataFrame.
-    
-    Args:
-        ruta_archivo: Path al archivo CSV.
-        
-    Returns:
-        DataFrame con los datos cargados.
+    Carga un archivo CSV con configuracion explicita para evitar errores de localizacion.
     """
-    return pd.read_csv(ruta_archivo)
+    return pd.read_csv(ruta_archivo, sep=',', decimal='.')
 
 
 def limpiar_datos(df: pd.DataFrame, columnas_numericas: Optional[List[str]] = None) -> pd.DataFrame:
