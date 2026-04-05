@@ -51,8 +51,8 @@ def guardar_csv(df: pd.DataFrame, nombre_archivo: str = "produccion_pozos.csv"):
     ruta_completa = os.path.join("data", nombre_archivo)
     
     df.to_csv(ruta_completa, index=False)
-    print(f"✅ Dataset guardado exitosamente en: {ruta_completa}")
-    print(f"📊 Dimensiones: {df.shape}")
+    print(f" Dataset guardado exitosamente en: {ruta_completa}")
+    print(f" Dimensiones: {df.shape}")
     print(df.head())
 
 if __name__ == "__main__":
