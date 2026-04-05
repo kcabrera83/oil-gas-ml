@@ -1,123 +1,191 @@
 """
-Módulo para entrenamiento y evaluación de modelos de Machine Learning.
-Aplicado a predicción de variables de yacimientos y producción.
+Script principal para ejecutar el pipeline de ML para predicción de producción.
 """
 
 import logging
-import os
-from typing import Tuple, Dict, Any
-import numpy as np
+import sys
 import pandas as pd
-import joblib
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+import numpy as np
+from pathlib import Path
 
-# Configuración de logging para trazabilidad en producción
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+# Importar funciones del módulo
+from ml_module import (
+    preparar_datos,
+    entrenar_modelo,
+    evaluar_modelo,
+    evaluar_modelo_completo,
+    log_metricas,
+    guardar_modelo,
+    cargar_modelo
+)
+
+# Configurar logging independiente para main
 logger = logging.getLogger(__name__)
 
 
-def calcular_r2_ajustado(r2: float, n_obs: int, n_features: int) -> float:
-    """Calcula el R² ajustado penalizando por el número de predictores."""
-    if n_obs <= n_features + 1:
-        return 0.0
-    return 1.0 - (1.0 - r2) * (n_obs - 1) / (n_obs - n_features - 1)
+def cargar_datos(ruta_datos: str, target_column: str) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Carga y prepara los datos desde un archivo CSV.
+    
+    Args:
+        ruta_datos: Path al archivo CSV con los datos.
+        target_column: Nombre de la columna objetivo.
+        
+    Returns:
+        Tupla con X (features) e y (target).
+    """
+    if not Path(ruta_datos).exists():
+        raise FileNotFoundError(f"Archivo de datos no encontrado: {ruta_datos}")
+    
+    df = pd.read_csv(ruta_datos)
+    logger.info("Datos cargados: %d filas, %d columnas", len(df), len(df.columns))
+    
+    if target_column not in df.columns:
+        raise ValueError(f"Columna objetivo '{target_column}' no encontrada en los datos")
+    
+    # Separar features y target
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+    
+    # Eliminar filas con valores nulos
+    mask = X.notna().all(axis=1) & y.notna()
+    X, y = X[mask], y[mask]
+    
+    logger.info("Datos limpios: %d muestras válidas", len(X))
+    return X, y
 
 
-def preparar_datos(
-    X: pd.DataFrame, y: pd.Series, test_size: float = 0.2
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-    """Divide los datos en conjuntos de entrenamiento y prueba."""
-    if not (0.0 < test_size < 1.0):
-        raise ValueError("test_size debe ser un valor entre 0 y 1 (excluyente).")
-    return train_test_split(X, y, test_size=test_size, random_state=42)
-
-
-def entrenar_modelo(
-    X_train: pd.DataFrame, y_train: pd.Series, n_estimators: int = 100
-) -> RandomForestRegressor:
-    """Entrena un modelo Random Forest Regressor optimizado."""
-    modelo = RandomForestRegressor(
-        n_estimators=n_estimators,
-        random_state=42,
-        n_jobs=-1
+def generar_datos_simulados(n_samples: int = 500, n_features: int = 10) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Genera datos sintéticos para pruebas del pipeline.
+    
+    Args:
+        n_samples: Número de muestras a generar.
+        n_features: Número de variables predictoras.
+        
+    Returns:
+        Tupla con X e y simulados.
+    """
+    np.random.seed(42)
+    X = pd.DataFrame(
+        np.random.randn(n_samples, n_features),
+        columns=[f"feature_{i}" for i in range(n_features)]
     )
-    modelo.fit(X_train, y_train)
-    return modelo
+    # Target con relación lineal + ruido
+    coeficientes = np.random.randn(n_features)
+    y = pd.Series(X @ coeficientes + np.random.normal(0, 0.5, n_samples), name="produccion")
+    logger.info("Datos simulados generados: %d muestras, %d features", n_samples, n_features)
+    return X, y
 
 
-def evaluar_modelo(
-    modelo: RandomForestRegressor, X_test: pd.DataFrame, y_test: pd.Series
-) -> Dict[str, float]:
-    """Evalúa el modelo y retorna métricas básicas."""
-    predicciones = modelo.predict(X_test)
-    return {
-        "mse": mean_squared_error(y_test, predicciones),
-        "r2": r2_score(y_test, predicciones)
+def ejecutar_pipeline(
+    ruta_datos: str = None,
+    target_column: str = "produccion",
+    test_size: float = 0.2,
+    n_estimators: int = 100,
+    guardar: bool = True,
+    ruta_modelo: str = "models/modelo_produccion.pkl"
+) -> dict:
+    """
+    Ejecuta el pipeline completo de ML: carga, entrenamiento, evaluación y persistencia.
+    
+    Args:
+        ruta_datos: Path a los datos (None para usar datos simulados).
+        target_column: Nombre de la variable objetivo.
+        test_size: Proporción para conjunto de prueba.
+        n_estimators: Número de árboles para Random Forest.
+        guardar: Si True, guarda el modelo en disco.
+        ruta_modelo: Path para guardar/cargar el modelo.
+        
+    Returns:
+        Diccionario con resultados y métricas del pipeline.
+    """
+    resultados = {}
+    
+    try:
+        # Paso 1: Cargar o generar datos
+        if ruta_datos and Path(ruta_datos).exists():
+            logger.info("Cargando datos desde: %s", ruta_datos)
+            X, y = cargar_datos(ruta_datos, target_column)
+        else:
+            logger.info("Usando datos simulados para demostración")
+            X, y = generar_datos_simulados()
+        
+        # Paso 2: Dividir datos
+        X_train, X_test, y_train, y_test = preparar_datos(X, y, test_size=test_size)
+        resultados["tamano_datos"] = {"train": len(X_train), "test": len(X_test)}
+        
+        # Paso 3: Entrenar modelo
+        modelo = entrenar_modelo(X_train, y_train, n_estimators=n_estimators)
+        resultados["modelo"] = {"tipo": "RandomForestRegressor", "n_estimators": n_estimators}
+        
+        # Paso 4: Evaluar modelo
+        metricas_basicas = evaluar_modelo(modelo, X_test, y_test)
+        metricas_completas = evaluar_modelo_completo(modelo, X_train, X_test, y_train, y_test)
+        
+        resultados["metricas"] = {**metricas_basicas, **metricas_completas}
+        
+        # Registrar métricas en consola
+        log_metricas(metricas_completas, prefijo="Resultados finales")
+        
+        # Paso 5: Guardar modelo (opcional)
+        if guardar:
+            exito_guardado = guardar_modelo(modelo, ruta_modelo)
+            resultados["guardado"] = exito_guardado
+        
+        # Paso 6: Verificar carga del modelo guardado
+        if guardar and resultados.get("guardado"):
+            modelo_cargado = cargar_modelo(ruta_modelo)
+            # Verificación rápida
+            pred_original = modelo.predict(X_test.iloc[:5])
+            pred_cargado = modelo_cargado.predict(X_test.iloc[:5])
+            if np.allclose(pred_original, pred_cargado):
+                logger.info("Verificación: modelo cargado produce predicciones consistentes")
+            else:
+                logger.warning("Advertencia: discrepancia en predicciones tras cargar modelo")
+        
+        logger.info("Pipeline ejecutado exitosamente")
+        return resultados
+        
+    except Exception as e:
+        logger.error("Error crítico en el pipeline: %s", e, exc_info=True)
+        resultados["error"] = str(e)
+        return resultados
+
+
+def main():
+    """Función principal de entrada."""
+    logger.info("=== Iniciando pipeline de ML para predicción de producción ===")
+    
+    # Configuración de parámetros (personalizar según necesidad)
+    config = {
+        "ruta_datos": None,  # Ej: "data/produccion_yacimientos.csv"
+        "target_column": "produccion",
+        "test_size": 0.2,
+        "n_estimators": 100,
+        "guardar": True,
+        "ruta_modelo": "models/modelo_produccion.pkl"
     }
-
-
-def evaluar_modelo_completo(
-    modelo: RandomForestRegressor,
-    X_train: pd.DataFrame,
-    X_test: pd.DataFrame,
-    y_train: pd.Series,
-    y_test: pd.Series,
-    cv_folds: int = 5
-) -> Dict[str, float]:
-    """Evalúa el modelo con métricas avanzadas y validación cruzada."""
-    y_pred = modelo.predict(X_test)
     
-    mse = mean_squared_error(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-    r2_ajustado = calcular_r2_ajustado(r2, n_obs=X_test.shape[0], n_features=X_test.shape[1])
+    # Ejecutar pipeline
+    resultados = ejecutar_pipeline(**config)
     
-    cv_scores = cross_val_score(modelo, X_train, y_train, cv=cv_folds, scoring="r2")
+    # Resumen final
+    if "error" not in resultados:
+        logger.info("=== Resumen ===")
+        logger.info("Muestras entrenamiento: %d", resultados["tamano_datos"]["train"])
+        logger.info("Muestras prueba: %d", resultados["tamano_datos"]["test"])
+        logger.info("R² en prueba: %.4f", resultados["metricas"]["r2_test"])
+        logger.info("R² ajustado: %.4f", resultados["metricas"]["r2_ajustado"])
+        logger.info("RMSE: %.4f", resultados["metricas"]["rmse"])
+        if resultados.get("guardado"):
+            logger.info("Modelo guardado en: %s", config["ruta_modelo"])
+    else:
+        logger.error("Pipeline falló: %s", resultados["error"])
+        sys.exit(1)
     
-    return {
-        "mse": mse,
-        "mae": mae,
-        "r2_test": r2,
-        "r2_ajustado": r2_ajustado,
-        "r2_cv_mean": cv_scores.mean(),
-        "r2_cv_std": cv_scores.std()
-    }
+    logger.info("=== Pipeline finalizado ===")
 
 
-def guardar_modelo(
-    modelo: RandomForestRegressor, ruta_archivo: str = "models/modelo_produccion.pkl"
-) -> None:
-    """Guarda el modelo entrenado en disco."""
-    os.makedirs(os.path.dirname(os.path.abspath(ruta_archivo)), exist_ok=True)
-    joblib.dump(modelo, ruta_archivo)
-    logger.info("Modelo guardado correctamente en: %s", ruta_archivo)
-
-
-def cargar_modelo(ruta_archivo: str) -> RandomForestRegressor:
-    """Carga un modelo previamente guardado."""
-    if not os.path.exists(ruta_archivo):
-        raise FileNotFoundError(f"No se encontró el modelo en: {ruta_archivo}")
-    logger.info("Cargando modelo desde: %s", ruta_archivo)
-    return joblib.load(ruta_archivo)
-
-
-# Ejemplo de flujo lógico de uso
 if __name__ == "__main__":
-    # 1. Preparación de datos (simulados)
-    # X_dummy = pd.DataFrame(np.random.rand(100, 5), columns=[f"feat_{i}" for i in range(5)])
-    # y_dummy = pd.Series(np.random.rand(100) * 50)
-    # X_train, X_test, y_train, y_test = preparar_datos(X_dummy, y_dummy)
-    
-    # 2. Entrenamiento
-    # modelo = entrenar_modelo(X_train, y_train)
-    
-    # 3. Evaluación
-    # metricas = evaluar_modelo_completo(modelo, X_train, X_test, y_train, y_test)
-    # logger.info("Métricas de evaluación: %s", metricas)
-    
-    # 4. Persistencia
-    # guardar_modelo(modelo)
-    # modelo_cargado = cargar_modelo("models/modelo_produccion.pkl")
-    pass
+    main()
