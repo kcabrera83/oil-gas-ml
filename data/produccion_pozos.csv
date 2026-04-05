@@ -1,0 +1,61 @@
+"""
+Script para generar datos sintéticos realistas de producción de petróleo y gas.
+Guarda el resultado en: data/produccion_pozos.csv
+"""
+
+import pandas as pd
+import numpy as np
+import os
+
+def generar_dataset(n_filas: int = 1000) -> pd.DataFrame:
+    """
+    Genera un DataFrame con variables geológicas y de producción correlacionadas.
+    """
+    print(f"Generando {n_filas} registros de datos sintéticos...")
+    
+    # 1. Generar variables predictoras (Features)
+    presion_psi = np.random.normal(3000, 600, n_filas)       # Presión del pozo
+    temperatura_c = np.random.normal(80, 15, n_filas)        # Temperatura
+    porosidad = np.random.uniform(0.10, 0.35, n_filas)       # Porosidad de la roca
+    permeabilidad_md = np.random.exponential(100, n_filas)   # Permeabilidad
+    
+    # 2. Crear variable objetivo (Target) con lógica física simulada
+    # La producción suele aumentar con la presión, la porosidad y la permeabilidad.
+    # Fórmula simulada: (Presión * Porosidad * Permeabilidad) * Factor + Ruido
+    produccion_base = (presion_psi * porosidad * permeabilidad_md) / 5000
+    
+    # Agregar ruido para que no sea perfecto (simular vida real)
+    ruido = np.random.normal(0, 50, n_filas)
+    produccion_bpd = produccion_base + ruido + 100  # Offset base
+    
+    # 3. Crear DataFrame
+    df = pd.DataFrame({
+        'presion_psi': presion_psi,
+        'temperatura_c': temperatura_c,
+        'porosidad': porosidad,
+        'permeabilidad_md': permeabilidad_md,
+        'produccion_bpd': produccion_bpd
+    })
+    
+    # Asegurar que no haya valores negativos en producción
+    df['produccion_bpd'] = df['produccion_bpd'].clip(lower=0)
+    
+    return df
+
+def guardar_csv(df: pd.DataFrame, nombre_archivo: str = "produccion_pozos.csv"):
+    """
+    Guarda el DataFrame en la carpeta data/.
+    """
+    # Crear carpeta data si no existe
+    os.makedirs("data", exist_ok=True)
+    ruta_completa = os.path.join("data", nombre_archivo)
+    
+    df.to_csv(ruta_completa, index=False)
+    print(f"✅ Dataset guardado exitosamente en: {ruta_completa}")
+    print(f"📊 Dimensiones: {df.shape}")
+    print(df.head())
+
+if __name__ == "__main__":
+    # Generar y guardar
+    datos = generar_dataset(n_filas=1000)
+    guardar_csv(datos)
