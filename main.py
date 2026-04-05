@@ -1,7 +1,7 @@
 """
 Script principal para ejecutar el pipeline completo de Machine Learning.
-Integra preprocesamiento y entrenamiento de modelos aplicados a la
-industria de petróleo y gas.
+Integra preprocesamiento, entrenamiento y generación de reportes visuales.
+Aplicado a la prediccion de variables en la industria de Petroleo y Gas.
 """
 
 import logging
@@ -18,11 +18,11 @@ SRC_DIR = SCRIPT_DIR / "src"
 sys.path.insert(0, str(SRC_DIR))
 
 from data_preprocessing import cargar_datos, preprocesar_pipeline
-from model_training import (
-    preparar_datos,
-    entrenar_modelo,
-    evaluar_modelo,
-    guardar_modelo,
+from model_training import preparar_datos, entrenar_modelo, evaluar_modelo, guardar_modelo
+from visualizaciones import (
+    graficar_correlaciones,
+    graficar_importancia_modelo,
+    graficar_reales_vs_predichos,
 )
 
 # Configuración de logging profesional
@@ -33,7 +33,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Constantes centralizadas (Single Source of Truth)
+# Constantes centralizadas
 RUTA_DATOS = "data/produccion_pozos.csv"
 RUTA_MODELO = "models/modelo_produccion.pkl"
 COLUMNAS_PREDICTORAS = ["presion_psi", "temperatura_c", "porosidad", "permeabilidad_md"]
@@ -54,10 +54,7 @@ def generar_datos_sinteticos(n_muestras: int = NUM_MUESTRAS_EJEMPLO) -> pd.DataF
 
 
 def cargar_o_validar_datos(ruta: str) -> pd.DataFrame:
-    """
-    Carga datos desde CSV y valida la estructura mínima requerida.
-    Si el archivo no existe, genera datos sintéticos para no detener el desarrollo.
-    """
+    """Carga datos desde CSV y valida la estructura mínima requerida."""
     try:
         logger.info("Cargando dataset desde: %s", ruta)
         df = cargar_datos(ruta)
@@ -77,19 +74,18 @@ def cargar_o_validar_datos(ruta: str) -> pd.DataFrame:
 
 def ejecutar_pipeline(ruta_datos: str = RUTA_DATOS, ruta_guardado: str = RUTA_MODELO) -> dict[str, Any]:
     """
-    Orquesta el flujo completo de ML: Carga -> Preprocesamiento -> Entrenamiento -> Evaluación -> Persistencia.
-    
-    Args:
-        ruta_datos: Path al archivo CSV de entrada.
-        ruta_guardado: Path destino para el modelo serializado.
-        
-    Returns:
-        Diccionario con las métricas de evaluación (MSE y R²).
+    Orquesta el flujo completo: Carga -> EDA -> Preprocesamiento -> Entrenamiento -> Reportes -> Persistencia.
     """
     logger.info("=== Iniciando Pipeline ML - Petróleo y Gas ===")
     
-    # 1. Ingesta
+    # 1. Ingesta y EDA Inicial
     df = cargar_o_validar_datos(ruta_datos)
+    
+    # Generar reporte de correlaciones
+    logger.info("Generando mapa de calor de correlaciones...")
+    ruta_corr = graficar_correlaciones(df, titulo="Correlaciones - Dataset Original")
+    logger.info("Gráfico guardado en: %s", ruta_corr)
+
     X = df[COLUMNAS_PREDICTORAS]
     y = df[COLUMNA_OBJETIVO]
     
@@ -106,10 +102,22 @@ def ejecutar_pipeline(ruta_datos: str = RUTA_DATOS, ruta_guardado: str = RUTA_MO
     logger.info("Entrenando Random Forest Regressor...")
     modelo = entrenar_modelo(X_train, y_train)
     
-    # 5. Evaluation
-    logger.info("Calculando métricas de rendimiento...")
+    # Generar reporte de importancia de características
+    logger.info("Generando gráfico de importancia del modelo...")
+    ruta_imp = graficar_importancia_modelo(modelo, COLUMNAS_PREDICTORAS)
+    logger.info("Gráfico guardado en: %s", ruta_imp)
+    
+    # 5. Evaluation & Prediction
+    logger.info("Calculando métricas y predicciones...")
     mse, r2 = evaluar_modelo(modelo, X_test, y_test)
+    y_pred = modelo.predict(X_test)
+    
     logger.info("Resultados -> MSE: %.2f | R²: %.4f", mse, r2)
+    
+    # Generar reporte de Reales vs Predichos
+    logger.info("Generando gráfico de Reales vs Predichos...")
+    ruta_pred = graficar_reales_vs_predichos(y_test, y_pred)
+    logger.info("Gráfico guardado en: %s", ruta_pred)
     
     # 6. Persistence
     logger.info("Serializando modelo en: %s", ruta_guardado)
