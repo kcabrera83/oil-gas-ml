@@ -6,16 +6,18 @@ Aplicado a la prediccion de variables en la industria de Petroleo y Gas.
 
 import logging
 import sys
-from pathlib import Path
-from typing import Any
+import os
+
+# ============================================
+# CONFIGURACIÓN DE RUTAS PARA IMPORTS LOCALES
+# Compatible con Windows, Linux y Mac
+# ============================================
+ruta_actual = os.path.dirname(os.path.abspath(__file__))
+ruta_src = os.path.join(ruta_actual, "src")
+sys.path.insert(0, ruta_src)
 
 import pandas as pd
 import numpy as np
-
-# Configuración de rutas para imports locales
-SCRIPT_DIR = Path(__file__).parent.resolve()
-SRC_DIR = SCRIPT_DIR / "src"
-sys.path.insert(0, str(SRC_DIR))
 
 from data_preprocessing import cargar_datos, preprocesar_pipeline
 from model_training import preparar_datos, entrenar_modelo, evaluar_modelo, guardar_modelo
@@ -72,7 +74,7 @@ def cargar_o_validar_datos(ruta: str) -> pd.DataFrame:
         raise
 
 
-def ejecutar_pipeline(ruta_datos: str = RUTA_DATOS, ruta_guardado: str = RUTA_MODELO) -> dict[str, Any]:
+def ejecutar_pipeline(ruta_datos: str = RUTA_DATOS, ruta_guardado: str = RUTA_MODELO) -> dict[str, any]:
     """
     Orquesta el flujo completo: Carga -> EDA -> Preprocesamiento -> Entrenamiento -> Reportes -> Persistencia.
     """
