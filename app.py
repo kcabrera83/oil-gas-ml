@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -30,6 +31,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+Instrumentator().instrument(app).expose(app)
 
 models: dict[str, Any] = {}
 
@@ -239,3 +242,4 @@ if __name__ == "__main__":
     print("  FastAPI Server - Crude Oil Evaluation")
     print("=" * 60)
     uvicorn.run(app, host="0.0.0.0", port=5001)
+
