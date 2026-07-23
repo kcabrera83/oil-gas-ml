@@ -23,9 +23,8 @@ def predict_sample(sample_data: dict):
     predictor = QualityPredictor.load("outputs/models/quality_predictor.pkl")
 
     preprocessor = CrudePreprocessor(scaler_type="robust")
-    preprocessor.fit(CrudePreprocessor._build_derived_features(
-        __import__("pandas").read_csv("data/crude_dataset.csv")
-    ))
+    dataset = __import__("pandas").read_csv("data/crude_dataset.csv")
+    preprocessor.fit(dataset)
 
     import pandas as pd
     df_sample = pd.DataFrame([sample_data])
@@ -46,15 +45,18 @@ def predict_sample(sample_data: dict):
     for i, cls in enumerate(classifier.class_names):
         print(f"    {cls:20s}: {quality_proba[0][i]:.2%}")
     print(f"\n  Valor de mercado estimado:    ${value_pred[0]:.2f} USD/barril")
-    print(f"  Rendimiento estimado:         {multi_pred[0].get('yield_recovery_pct', 'N/A')}%")
-    print(f"  Valor estimado (multi):       ${multi_pred[0].get('market_value_usd_bbl', 'N/A')} USD/barril")
+    print(f"  Rendimiento estimado:         {multi_pred[0][0]:.2f}%")
+    print(f"  Valor estimado (multi):       ${multi_pred[0][1]:.2f} USD/barril")
     print("=" * 60)
 
     return {
         "quality_class": classifier.class_names[quality_pred[0]],
         "quality_probabilities": dict(zip(classifier.class_names, quality_proba[0].tolist())),
         "market_value_usd_bbl": float(value_pred[0]),
-        "multi_predictions": multi_pred[0],
+        "multi_predictions": {
+            "yield_recovery_pct": float(multi_pred[0][0]),
+            "market_value_usd_bbl": float(multi_pred[0][1]),
+        },
     }
 
 

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oil & Gas ML - Evaluación de Crudo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e17;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1f35 0%, #0d1117 100%);
+            border-bottom: 2px solid #f08804;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            color: #f08804;
+        }
+        .header .subtitle {
+            color: #8b949e;
+            font-size: 0.95rem;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: #f08804; }
+        .card h3 { color: #f08804; margin-bottom: 12px; font-size: 1.1rem; }
+        .card .value { font-size: 2.2rem; font-weight: 700; color: #fff; }
+        .card .label { color: #8b949e; font-size: 0.85rem; margin-top: 4px; }
+        .section { margin-bottom: 40px; }
+        .section h2 {
+            color: #f08804;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #30363d;
+        }
+        .predict-form {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label {
+            color: #8b949e;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #e0e0e0;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #f08804; }
+        .btn {
+            background: #f08804;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover { background: #d27d00; }
+        .btn:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
+        .results-panel {
+            display: none;
+            margin-top: 30px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+        }
+        .results-panel.active { display: block; }
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .result-item { text-align: center; padding: 20px; background: #0d1117; border-radius: 10px; }
+        .result-item .result-value { font-size: 2rem; font-weight: 700; color: #f08804; }
+        .result-item .result-label { color: #8b949e; font-size: 0.85rem; margin-top: 6px; }
+        .quality-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+        }
+        .quality-premium { background: #1a4731; color: #2ecc71; border: 1px solid #2ecc71; }
+        .quality-estandar { background: #1a3a5c; color: #3498db; border: 1px solid #3498db; }
+        .quality-inferior { background: #4a3010; color: #e67e22; border: 1px solid #e67e22; }
+        .quality-deshidratado { background: #4a1515; color: #e74c3c; border: 1px solid #e74c3c; }
+        .chart-container { position: relative; height: 300px; margin-top: 15px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab {
+            padding: 10px 24px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .tab.active { background: #f08804; color: #000; border-color: #f08804; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .loading { display: none; text-align: center; padding: 40px; }
+        .loading.active { display: block; }
+        .spinner {
+            border: 3px solid #30363d;
+            border-top: 3px solid #f08804;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
+        th { color: #f08804; font-weight: 600; }
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #8b949e;
+            font-size: 0.85rem;
+            border-top: 1px solid #30363d;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Oil & Gas ML</h1>
+            <div class="subtitle">Sistema de Machine Learning para Evaluación de Crudo Petrolífero</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Dashboard Stats -->
+        <div class="section">
+            <h2>Dashboard</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Muestras Totales</h3>
+                    <div class="value">{{ stats.total_samples | default(0) }}</div>
+                    <div class="label">Muestras de crudo en dataset</div>
+                </div>
+                <div class="card">
+                    <h3>API Gravity Promedio</h3>
+                    <div class="value">{{ stats.avg_api | default(0) }} °API</div>
+                    <div class="label">Densidad relativa promedio</div>
+                </div>
+                <div class="card">
+                    <h3>Azufre Promedio</h3>
+                    <div class="value">{{ stats.avg_sulfur | default(0) }}%</div>
+                    <div class="label">Contenido de azufre</div>
+                </div>
+                <div class="card">
+                    <h3>Valor Promedio</h3>
+                    <div class="value">${{ stats.avg_market_value | default(0) }}</div>
+                    <div class="label">USD/barril</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribution Charts -->
+        <div class="section">
+            <h2>Análisis del Dataset</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Tipos de Crudo</h3>
+                    <div class="chart-container">
+                        <canvas id="crudeTypeChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Clases de Calidad</h3>
+                    <div class="chart-container">
+                        <canvas id="qualityChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Distribución API Gravity</h3>
+                    <div class="chart-container">
+                        <canvas id="apiChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prediction Form -->
+        <div class="section">
+            <h2>Predicción de Crudo</h2>
+            <div class="predict-form">
+                <div class="tabs">
+                    <div class="tab active" onclick="showTab('form')">Formulario</div>
+                    <div class="tab" onclick="showTab('quick')">Predicción Rápida</div>
+                </div>
+
+                <div id="tab-form" class="tab-content active">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>API Gravity (°API)</label>
+                            <input type="number" id="api_gravity" value="32.5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Viscosidad (cP)</label>
+                            <input type="number" id="viscosity_cp" value="45.0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Azufre (%)</label>
+                            <input type="number" id="sulfur_content_pct" value="1.2" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Agua (%)</label>
+                            <input type="number" id="water_content_pct" value="2.5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Asfaltenos (%)</label>
+                            <input type="number" id="asphaltene_content_pct" value="3.0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>TAN (mg KOH/g)</label>
+                            <input type="number" id="total_acid_number" value="0.8" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Punto de Fluidez (°C)</label>
+                            <input type="number" id="pour_point_c" value="5.0" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Punto de Inflamación (°C)</label>
+                            <input type="number" id="flash_point_c" value="45.0" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Densidad (kg/m³)</label>
+                            <input type="number" id="density_kg_m3" value="862.0" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>RVP (kPa)</label>
+                            <input type="number" id="rvp_kpa" value="55.0" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Salinidad (PTB)</label>
+                            <input type="number" id="salt_content_ptb" value="12.0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Metales (ppm)</label>
+                            <input type="number" id="metal_content_ppm" value="25.0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Nitrógeno (%)</label>
+                            <input type="number" id="nitrogen_content_pct" value="0.08" step="0.001">
+                        </div>
+                        <div class="form-group">
+                            <label>Residuo de Carbono (%)</label>
+                            <input type="number" id="carbon_residue_pct" value="2.5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Crudo</label>
+                            <select id="crude_type">
+                                <option value="liviano">Liviano</option>
+                                <option value="mediano" selected>Mediano</option>
+                                <option value="pesado">Pesado</option>
+                                <option value="extra_pesado">Extra Pesado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="predict()" id="predictBtn">Analizar Crudo</button>
+                </div>
+
+                <div id="tab-quick" class="tab-content">
+                    <p style="color: #8b949e; margin-bottom: 15px;">Selecciona un tipo de crudo para una predicción rápida:</p>
+                    <div class="grid" style="grid-template-columns: repeat(4, 1fr);">
+                        <button class="btn" onclick="quickPredict('liviano')" style="background:#27ae60;">Liviano</button>
+                        <button class="btn" onclick="quickPredict('mediano')" style="background:#2980b9;">Mediano</button>
+                        <button class="btn" onclick="quickPredict('pesado')" style="background:#d35400;">Pesado</button>
+                        <button class="btn" onclick="quickPredict('extra_pesado')" style="background:#c0392b;">Extra Pesado</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analizando propiedades del crudo...</p>
+            </div>
+
+            <div class="results-panel" id="results">
+                <h3 style="color: #f08804; margin-bottom: 20px;">Resultados del Análisis</h3>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div id="qualityResult" class="quality-badge quality-estandar">ESTANDAR</div>
+                        <div class="result-label">Clase de Calidad</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-value" id="marketValue">$0.00</div>
+                        <div class="result-label">Valor de Mercado (USD/bbl)</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-value" id="yieldRecovery">0%</div>
+                        <div class="result-label">Rendimiento Estimado</div>
+                    </div>
+                </div>
+                <div class="chart-container" style="height:250px; margin-top:20px;">
+                    <canvas id="probChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dataset Table -->
+        <div class="section">
+            <h2>Muestras del Dataset</h2>
+            <div class="card" style="overflow-x: auto;">
+                <table id="sampleTable">
+                    <thead>
+                        <tr>
+                            <th>#</th><th>Tipo</th><th>API</th><th>Azufre%</th>
+                            <th>Viscosidad</th><th>Calidad</th><th>Valor USD</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Oil & Gas ML v1.0 | Kelvin Cabrera 2026 | Sistema de Evaluación de Crudo
+    </div>
+
+    <script>
+        const stats = {{ stats | tojson }};
+        const crudeColors = { liviano:'#27ae60', mediano:'#2980b9', pesado:'#d35400', extra_pesado:'#c0392b' };
+        const qualityColors = { premium:'#2ecc71', estandar:'#3498db', inferior:'#e67e22', deshidratado:'#e74c3c' };
+
+        // Crude Type Pie
+        if (stats.crude_types) {
+            new Chart(document.getElementById('crudeTypeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(stats.crude_types),
+                    datasets: [{
+                        data: Object.values(stats.crude_types),
+                        backgroundColor: Object.keys(stats.crude_types).map(k => crudeColors[k] || '#666'),
+                        borderWidth: 0,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e0e0e0' } } } }
+            });
+        }
+
+        // Quality Pie
+        if (stats.quality_classes) {
+            new Chart(document.getElementById('qualityChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(stats.quality_classes),
+                    datasets: [{
+                        data: Object.values(stats.quality_classes),
+                        backgroundColor: Object.keys(stats.quality_classes).map(k => qualityColors[k] || '#666'),
+                        borderWidth: 0,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e0e0e0' } } } }
+            });
+        }
+
+        // API Distribution
+        fetch('/api/distribution/api_gravity')
+            .then(r => r.json())
+            .then(data => {
+                const labels = data.bins.slice(0, -1).map((b, i) => b.toFixed(1));
+                new Chart(document.getElementById('apiChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Frecuencia',
+                            data: data.counts,
+                            backgroundColor: '#f0880488',
+                            borderColor: '#f08804',
+                            borderWidth: 1,
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            x: { ticks: { color: '#8b949e', maxTicksLimit: 10 }, grid: { color: '#30363d' } },
+                            y: { ticks: { color: '#8b949e' }, grid: { color: '#30363d' } }
+                        },
+                        plugins: { legend: { labels: { color: '#e0e0e0' } } }
+                    }
+                });
+            });
+
+        // Load sample table
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(() => {
+                for (let i = 0; i < 15; i++) {
+                    fetch(`/api/sample/${i}`)
+                        .then(r => r.json())
+                        .then(s => {
+                            const tbody = document.querySelector('#sampleTable tbody');
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `<td>${i}</td><td>${s.crude_type}</td><td>${s.api_gravity}</td>
+                                <td>${s.sulfur_content_pct}</td><td>${s.viscosity_cp}</td>
+                                <td><span class="quality-badge quality-${s.quality_class}" style="font-size:0.7rem;padding:4px 10px;">${s.quality_class}</span></td>
+                                <td>$${s.market_value_usd_bbl}</td>`;
+                            tbody.appendChild(tr);
+                        });
+                }
+            });
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        }
+
+        function getFormData() {
+            return {
+                api_gravity: parseFloat(document.getElementById('api_gravity').value),
+                viscosity_cp: parseFloat(document.getElementById('viscosity_cp').value),
+                sulfur_content_pct: parseFloat(document.getElementById('sulfur_content_pct').value),
+                water_content_pct: parseFloat(document.getElementById('water_content_pct').value),
+                asphaltene_content_pct: parseFloat(document.getElementById('asphaltene_content_pct').value),
+                total_acid_number: parseFloat(document.getElementById('total_acid_number').value),
+                pour_point_c: parseFloat(document.getElementById('pour_point_c').value),
+                flash_point_c: parseFloat(document.getElementById('flash_point_c').value),
+                density_kg_m3: parseFloat(document.getElementById('density_kg_m3').value),
+                rvp_kpa: parseFloat(document.getElementById('rvp_kpa').value),
+                salt_content_ptb: parseFloat(document.getElementById('salt_content_ptb').value),
+                metal_content_ppm: parseFloat(document.getElementById('metal_content_ppm').value),
+                nitrogen_content_pct: parseFloat(document.getElementById('nitrogen_content_pct').value),
+                carbon_residue_pct: parseFloat(document.getElementById('carbon_residue_pct').value),
+                crude_type: document.getElementById('crude_type').value,
+            };
+        }
+
+        function quickPredict(type) {
+            const presets = {
+                liviano: { api_gravity:42, viscosity_cp:5, sulfur_content_pct:0.3, water_content_pct:1, asphaltene_content_pct:0.5, total_acid_number:0.2, pour_point_c:-20, flash_point_c:20, density_kg_m3:815, rvp_kpa:80, salt_content_ptb:3, metal_content_ppm:2, nitrogen_content_pct:0.01, carbon_residue_pct:0.3, crude_type:'liviano' },
+                mediano: { api_gravity:30, viscosity_cp:50, sulfur_content_pct:1.2, water_content_pct:3, asphaltene_content_pct:3, total_acid_number:0.8, pour_point_c:5, flash_point_c:45, density_kg_m3:876, rvp_kpa:45, salt_content_ptb:12, metal_content_ppm:20, nitrogen_content_pct:0.06, carbon_residue_pct:2, crude_type:'mediano' },
+                pesado: { api_gravity:18, viscosity_cp:500, sulfur_content_pct:2.5, water_content_pct:5, asphaltene_content_pct:8, total_acid_number:1.5, pour_point_c:25, flash_point_c:80, density_kg_m3:945, rvp_kpa:25, salt_content_ptb:25, metal_content_ppm:80, nitrogen_content_pct:0.15, carbon_residue_pct:6, crude_type:'pesado' },
+                extra_pesado: { api_gravity:8, viscosity_cp:5000, sulfur_content_pct:4.5, water_content_pct:8, asphaltene_content_pct:12, total_acid_number:2.5, pour_point_c:40, flash_point_c:120, density_kg_m3:1020, rvp_kpa:18, salt_content_ptb:40, metal_content_ppm:150, nitrogen_content_pct:0.25, carbon_residue_pct:10, crude_type:'extra_pesado' },
+            };
+            const p = presets[type];
+            Object.keys(p).forEach(k => {
+                const el = document.getElementById(k);
+                if (el) el.value = p[k];
+            });
+            predict();
+        }
+
+        function predict() {
+            const btn = document.getElementById('predictBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            btn.disabled = true;
+            loading.classList.add('active');
+            results.classList.remove('active');
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(getFormData()),
+            })
+            .then(r => r.json())
+            .then(data => {
+                loading.classList.remove('active');
+                btn.disabled = false;
+                if (data.error) { alert('Error: ' + data.error); return; }
+
+                document.getElementById('marketValue').textContent = '$' + data.market_value.toFixed(2);
+                document.getElementById('yieldRecovery').textContent = data.yield_recovery + '%';
+
+                const badge = document.getElementById('qualityResult');
+                badge.textContent = data.quality_class.toUpperCase();
+                badge.className = 'quality-badge quality-' + data.quality_class;
+
+                results.classList.add('active');
+
+                const probLabels = Object.keys(data.quality_probabilities);
+                const probValues = Object.values(data.quality_probabilities).map(v => (v * 100).toFixed(1));
+                const probColors = probLabels.map(k => qualityColors[k] || '#666');
+
+                if (window.probChartInstance) window.probChartInstance.destroy();
+                window.probChartInstance = new Chart(document.getElementById('probChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: probLabels,
+                        datasets: [{ label: 'Probabilidad (%)', data: probValues, backgroundColor: probColors, borderWidth: 0, borderRadius: 6 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                        scales: { x: { max: 100, ticks: { color: '#8b949e' }, grid: { color: '#30363d' } }, y: { ticks: { color: '#e0e0e0' }, grid: { display: false } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            })
+            .catch(err => {
+                loading.classList.remove('active');
+                btn.disabled = false;
+                alert('Error de conexión: ' + err.message);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Oil & Gas ML - Sistema de Machine Learning para Evaluación de Crudo
 
-Sistema integral de Machine Learning para el estudio, clasificación y evaluación económica de crudo petrolífero basado en sus propiedades físico-químicas.
+Sistema integral de Machine Learning para el estudio, clasificación y evaluación económica de crudo petrolífero basado en sus propiedades físico-químicas. Incluye servidor web interactivo con dashboard y formulario de predicción.
 
 ## Características
 
@@ -82,6 +82,19 @@ python scripts/predict.py
 ```bash
 python scripts/evaluate.py
 ```
+
+### Servidor Web (Dashboard + Predictor)
+
+```bash
+python app.py
+```
+
+Abre http://127.0.0.1:5000 en tu navegador para acceder al dashboard interactivo con:
+- Estadísticas del dataset
+- Gráficos de distribución por tipo y calidad
+- Formulario de predicción con 15 propiedades
+- Predicción rápida por tipo de crudo
+- Resultados con clase de calidad, valor de mercado y rendimiento
 
 ### Uso como librería
 

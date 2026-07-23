@@ -123,8 +123,8 @@ def main():
     qp.save("outputs/models/quality_predictor.pkl")
 
     comparison = evaluator.compare_models()
-    cls_comparison = {k: v["metrics"] for k, v in comparison.items() if evaluator.results[k]["type"] == "classification"}
-    reg_comparison = {k: v["metrics"] for k, v in comparison.items() if evaluator.results[k]["type"] == "regression"}
+    cls_comparison = {k: v for k, v in comparison.items() if evaluator.results[k]["type"] == "classification"}
+    reg_comparison = {k: v for k, v in comparison.items() if evaluator.results[k]["type"] == "regression"}
     if cls_comparison:
         viz.plot_model_comparison(cls_comparison, metric_filter={"accuracy", "f1_weighted"})
     if reg_comparison:
