@@ -69,14 +69,16 @@ class PredictRequest(BaseModel):
     viscosity_cp: float = 50.0
     density_kg_m3: float = 870.0
     pour_point_c: float = 10.0
-    asphaltene_pct: float = 5.0
-    wax_content_pct: float = 8.0
-    nickel_ppm: float = 20.0
-    vanadium_ppm: float = 50.0
-    crude_type: str = "medium"
-    quality_class: str = "medium"
-    yield_recovery_pct: float = 35.0
-    market_value_usd_bbl: float = 75.0
+    asphaltene_content_pct: float = 5.0
+    water_content_pct: float = 3.0
+    total_acid_number: float = 1.5
+    flash_point_c: float = 60.0
+    rvp_kpa: float = 30.0
+    salt_content_ptb: float = 15.0
+    metal_content_ppm: float = 40.0
+    nitrogen_content_pct: float = 0.3
+    carbon_residue_pct: float = 2.0
+    crude_type: str = "mediano"
 
 
 class PredictResponse(BaseModel):
