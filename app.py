@@ -166,6 +166,23 @@ def api_model_info():
     return jsonify(info)
 
 
+@app.route("/api/docs")
+def api_docs():
+    return jsonify({
+        "openapi": "3.0.0",
+        "info": {"title": "Oil Gas ML - Evaluacion de Crudo", "version": "1.0.0"},
+        "paths": {
+            "/": {"get": {"summary": "Dashboard principal con estadisticas"}},
+            "/predict": {"post": {"summary": "Predecir calidad, valor y rendimiento de crudo"}},
+            "/api/stats": {"get": {"summary": "Estadisticas generales del dataset"}},
+            "/api/distribution/{feature}": {"get": {"summary": "Distribucion de un feature especifico"}},
+            "/api/correlation": {"get": {"summary": "Matriz de correlacion entre features"}},
+            "/api/sample/{idx}": {"get": {"summary": "Obtener una muestra del dataset por indice"}},
+            "/api/model_info": {"get": {"summary": "Informacion de los modelos entrenados"}},
+        }
+    })
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("  Servidor Web - Evaluación de Crudo Petrolífero")

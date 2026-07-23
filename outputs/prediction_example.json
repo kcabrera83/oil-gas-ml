@@ -1,0 +1,14 @@
+{
+  "quality_class": "estandar",
+  "quality_probabilities": {
+    "deshidratado": 0.006785714285714286,
+    "estandar": 0.92675,
+    "inferior": 0.028964285714285717,
+    "premium": 0.0375
+  },
+  "market_value_usd_bbl": 50.0802851945929,
+  "multi_predictions": {
+    "yield_recovery_pct": 49.97513227039228,
+    "market_value_usd_bbl": 84.86210435707753
+  }
+}
