@@ -1,0 +1,160 @@
+name: Oil & Gas ML - Test Completo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: "Test 1: Importar modulos"
+        run: |
+          python -c "
+          from oil_gas_ml import __version__
+          from oil_gas_ml.data_generator import CrudeDataGenerator
+          from oil_gas_ml.utils.preprocessor import CrudePreprocessor
+          from oil_gas_ml.utils.visualizer import CrudeVisualizer
+          from oil_gas_ml.utils.metrics import ModelEvaluator
+          from oil_gas_ml.models.crude_classifier import CrudeClassifier
+          from oil_gas_ml.models.crude_regressor import CrudeRegressor
+          from oil_gas_ml.models.quality_predictor import QualityPredictor
+          print(f'OK: Todos los modulos importados - version {__version__}')
+          "
+
+      - name: "Test 2: Generar dataset"
+        run: |
+          python -c "
+          from oil_gas_ml.data_generator import CrudeDataGenerator
+          gen = CrudeDataGenerator(seed=42)
+          df = gen.generate(n_samples=3000)
+          assert len(df) == 3000, f'Esperado 3000, obtenido {len(df)}'
+          assert df.shape[1] == 18, f'Esperado 18 columnas, obtenido {df.shape[1]}'
+          print(f'OK: Dataset generado - {len(df)} muestras, {df.shape[1]} columnas')
+          print(f'   Tipos: {df[\"crude_type\"].value_counts().to_dict()}')
+          print(f'   Calidad: {df[\"quality_class\"].value_counts().to_dict()}')
+          "
+
+      - name: "Test 3: Entrenar clasificadores"
+        run: |
+          python -c "
+          from oil_gas_ml.data_generator import CrudeDataGenerator
+          from oil_gas_ml.utils.preprocessor import CrudePreprocessor
+          from oil_gas_ml.models.crude_classifier import CrudeClassifier
+          gen = CrudeDataGenerator(seed=42)
+          df = gen.generate(n_samples=2000)
+          p = CrudePreprocessor()
+          X_train, X_test, y_train, y_test, le = p.prepare_classification(df)
+          for name in CrudeClassifier.MODELS:
+              clf = CrudeClassifier(model_name=name)
+              clf.train(X_train, y_train, le.classes_)
+              acc = (clf.predict(X_test) == y_test).mean()
+              assert acc > 0.90, f'{name} accuracy {acc} < 0.90'
+              print(f'   {name}: accuracy={acc:.4f} OK')
+          print('OK: Todos los clasificadores entrenados (>90% accuracy)')
+          "
+
+      - name: "Test 4: Entrenar regresores"
+        run: |
+          python -c "
+          from oil_gas_ml.data_generator import CrudeDataGenerator
+          from oil_gas_ml.utils.preprocessor import CrudePreprocessor
+          from oil_gas_ml.models.crude_regressor import CrudeRegressor
+          from sklearn.metrics import r2_score
+          gen = CrudeDataGenerator(seed=42)
+          df = gen.generate(n_samples=2000)
+          p = CrudePreprocessor()
+          X_train, X_test, y_train, y_test = p.prepare_regression(df)
+          for name in CrudeRegressor.MODELS:
+              reg = CrudeRegressor(model_name=name)
+              reg.train(X_train, y_train)
+              r2 = r2_score(y_test, reg.predict(X_test))
+              assert r2 > 0.90, f'{name} R2 {r2} < 0.90'
+              print(f'   {name}: R2={r2:.4f} OK')
+          print('OK: Todos los regresores entrenados (>90% R2)')
+          "
+
+      - name: "Test 5: Predictor multi-output"
+        run: |
+          python -c "
+          from oil_gas_ml.data_generator import CrudeDataGenerator
+          from oil_gas_ml.utils.preprocessor import CrudePreprocessor
+          from oil_gas_ml.models.quality_predictor import QualityPredictor
+          gen = CrudeDataGenerator(seed=42)
+          df = gen.generate(n_samples=2000)
+          p = CrudePreprocessor()
+          X_train, X_test, y_train, y_test, targets = p.prepare_multi_target(df)
+          qp = QualityPredictor()
+          qp.train(X_train, y_train, target_names=targets)
+          results = qp.evaluate(X_test, y_test)
+          for name, m in results.items():
+              print(f'   {name}: R2={m[\"R2\"]:.4f}, RMSE={m[\"RMSE\"]:.4f}')
+          print('OK: Predictor multi-output entrenado')
+          "
+
+      - name: "Test 6: Entrenamiento completo + guardar modelos"
+        run: python scripts/train.py
+
+      - name: "Test 7: Prediccion de muestra"
+        run: python scripts/predict.py
+
+      - name: "Test 8: Servidor Flask responde"
+        run: |
+          python app.py &
+          sleep 10
+          curl -sf http://127.0.0.1:5000 > /dev/null && echo "OK: Pagina principal responde"
+          curl -sf http://127.0.0.1:5000/api/stats > /dev/null && echo "OK: API stats responde"
+          curl -sf -X POST http://127.0.0.1:5000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"api_gravity":42,"viscosity_cp":5,"sulfur_content_pct":0.3,"water_content_pct":1,"asphaltene_content_pct":0.5,"total_acid_number":0.2,"pour_point_c":-20,"flash_point_c":20,"density_kg_m3":815,"rvp_kpa":80,"salt_content_ptb":3,"metal_content_ppm":2,"nitrogen_content_pct":0.01,"carbon_residue_pct":0.3,"crude_type":"liviano"}' > /dev/null && echo "OK: API predict responde"
+          kill %1 || true
+
+      - name: "Test 9: Verificar archivos generados"
+        run: |
+          python -c "
+          from pathlib import Path
+          checks = {
+              'Dataset': Path('data/crude_dataset.csv'),
+              'Classifier': Path('outputs/models/crude_classifier_best.pkl'),
+              'Regressor': Path('outputs/models/crude_regressor_best.pkl'),
+              'Predictor': Path('outputs/models/quality_predictor.pkl'),
+              'Distribution plot': Path('outputs/plots/01_data_distribution.png'),
+              'Correlation plot': Path('outputs/plots/02_correlation_matrix.png'),
+              'Confusion matrix': Path('outputs/plots/06_confusion_matrix.png'),
+              'Regression plot': Path('outputs/plots/07_regression_results.png'),
+          }
+          for name, path in checks.items():
+              assert path.exists(), f'{name} no encontrado: {path}'
+              size = path.stat().st_size
+              print(f'   {name}: {path} ({size:,} bytes)')
+          print('OK: Todos los archivos generados existen')
+          "
+
+      - name: Resumen final
+        run: |
+          echo "=========================================="
+          echo "  TODOS LOS TESTS COMPLETADOS CON EXITO"
+          echo "=========================================="
+          echo "  Python: $(python --version)"
+          echo "  Plataforma: ubuntu-latest"
+          echo "  Branch: ${{ github.ref_name }}"
+          echo "  Commit: ${{ github.sha }}"
+          echo "=========================================="
