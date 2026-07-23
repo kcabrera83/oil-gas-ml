@@ -6,15 +6,20 @@ Comprehensive Machine Learning system for the study, classification, and economi
 
 | Component | Technology |
 |-----------|-----------|
-| ML Framework | **scikit-learn** (≥1.3) |
-| Classification | RandomForest, GradientBoosting, SVM, KNN, MLP |
-| Regression | RandomForest, GradientBoosting, ExtraTrees, SVR, Ridge, ElasticNet |
-| Multi-output | GradientBoosting (MultiOutputRegressor) |
-| Data Processing | pandas, numpy, joblib |
-| Visualization | matplotlib, seaborn |
-| Web Server | FastAPI + uvicorn |
+| ML Framework | **scikit-learn** (>=1.3) |
+| Data Processing | **pandas**, numpy, joblib |
+| Web Server | **FastAPI** + uvicorn |
 | Monitoring | prometheus-fastapi-instrumentator |
 | Validation | pydantic v2 |
+| Visualization | matplotlib, seaborn |
+
+### Key Libraries
+- scikit-learn - Machine learning algorithms
+- pandas - Data manipulation and analysis
+- FastAPI - Modern async web framework
+- numpy - Numerical computing
+- joblib - Model serialization
+- matplotlib / seaborn - Data visualization
 
 ## Features
 
@@ -54,15 +59,15 @@ oil-gas-ml/
 
 | Property | Unit | Description |
 |----------|------|-------------|
-| API Gravity | °API | Relative density of crude oil |
+| API Gravity | deg API | Relative density of crude oil |
 | Viscosity | cP | Resistance to flow |
 | Sulfur | % | Total sulfur content |
 | Water (BS&W) | % | Water content |
 | Asphaltenes | % | Asphaltene content |
 | TAN | mg KOH/g | Total acid number |
-| Pour Point | °C | Minimum fluidity temperature |
-| Flash Point | °C | Ignitability temperature |
-| Density | kg/m³ | Absolute density |
+| Pour Point | deg C | Minimum fluidity temperature |
+| Flash Point | deg C | Ignitability temperature |
+| Density | kg/m3 | Absolute density |
 | RVP | kPa | Reid vapor pressure |
 | Salinity | PTB | Salt content |
 | Metals | ppm | Total metal content |
@@ -156,13 +161,13 @@ predictions = clf.predict(X_test)
 
 ## Supported Crude Oil Types
 
-| Type | °API | Viscosity | Sulfur |
-|------|------|-----------|--------|
+| Type | deg API | Viscosity | Sulfur |
+|------|---------|-----------|--------|
 | Light | 35-55 | 1-10 cP | 0.1-0.5% |
 | Medium | 25-35 | 10-100 cP | 0.5-1.5% |
 | Heavy | 10-25 | 100-10,000 cP | 1.5-3.5% |
 | Extra Heavy | 5-10 | 1,000-100,000 cP | 3.0-6.0% |
 
-## Author
+---
 
-Kelvin Cabrera - 2026
+Elaborado por Ing. Kelvin Cabrera
