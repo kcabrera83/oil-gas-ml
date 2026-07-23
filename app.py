@@ -1,4 +1,4 @@
-"""Servidor web Flask para el sistema ML de evaluación de crudo."""
+"""Flask web server for the crude oil ML evaluation system."""
 
 import sys
 import json
@@ -35,10 +35,10 @@ def load_models():
         dataset = pd.read_csv("data/crude_dataset.csv")
         preprocessor = CrudePreprocessor(scaler_type="robust")
         preprocessor.fit(dataset)
-        print("  Modelos cargados correctamente.")
+        print("  Models loaded successfully.")
     except Exception as e:
-        print(f"  Error cargando modelos: {e}")
-        print("  Ejecuta 'python scripts/train.py' primero.")
+        print(f"  Error loading models: {e}")
+        print("  Run 'python scripts/train.py' first.")
         gen = CrudeDataGenerator(seed=42)
         dataset = gen.generate(n_samples=3000)
         preprocessor = CrudePreprocessor(scaler_type="robust")
@@ -94,7 +94,7 @@ def predict():
 @app.route("/api/stats")
 def api_stats():
     if dataset is None:
-        return jsonify({"error": "Dataset no disponible"}), 404
+        return jsonify({"error": "Dataset not available"}), 404
     return jsonify({
         "total_samples": len(dataset),
         "crude_types": dataset["crude_type"].value_counts().to_dict(),
@@ -110,7 +110,7 @@ def api_stats():
 @app.route("/api/distribution/<feature>")
 def api_distribution(feature):
     if dataset is None or feature not in dataset.columns:
-        return jsonify({"error": "Feature no encontrado"}), 404
+        return jsonify({"error": "Feature not found"}), 404
     data = dataset[feature].dropna()
     counts, bins = np.histogram(data, bins=30)
     return jsonify({
@@ -127,7 +127,7 @@ def api_distribution(feature):
 @app.route("/api/correlation")
 def api_correlation():
     if dataset is None:
-        return jsonify({"error": "Dataset no disponible"}), 404
+        return jsonify({"error": "Dataset not available"}), 404
     numeric = dataset.select_dtypes(include=[np.number])
     corr = numeric.corr()
     return jsonify({
@@ -139,7 +139,7 @@ def api_correlation():
 @app.route("/api/sample/<int:idx>")
 def api_sample(idx):
     if dataset is None or idx >= len(dataset):
-        return jsonify({"error": "Muestra no encontrada"}), 404
+        return jsonify({"error": "Sample not found"}), 404
     return jsonify(dataset.iloc[idx].to_dict())
 
 
@@ -170,25 +170,25 @@ def api_model_info():
 def api_docs():
     return jsonify({
         "openapi": "3.0.0",
-        "info": {"title": "Oil Gas ML - Evaluacion de Crudo", "version": "1.0.0"},
+        "info": {"title": "Oil Gas ML - Crude Oil Evaluation", "version": "1.0.0"},
         "paths": {
-            "/": {"get": {"summary": "Dashboard principal con estadisticas"}},
-            "/predict": {"post": {"summary": "Predecir calidad, valor y rendimiento de crudo"}},
-            "/api/stats": {"get": {"summary": "Estadisticas generales del dataset"}},
-            "/api/distribution/{feature}": {"get": {"summary": "Distribucion de un feature especifico"}},
-            "/api/correlation": {"get": {"summary": "Matriz de correlacion entre features"}},
-            "/api/sample/{idx}": {"get": {"summary": "Obtener una muestra del dataset por indice"}},
-            "/api/model_info": {"get": {"summary": "Informacion de los modelos entrenados"}},
+            "/": {"get": {"summary": "Main dashboard with statistics"}},
+            "/predict": {"post": {"summary": "Predict crude oil quality, value and yield"}},
+            "/api/stats": {"get": {"summary": "General dataset statistics"}},
+            "/api/distribution/{feature}": {"get": {"summary": "Distribution of a specific feature"}},
+            "/api/correlation": {"get": {"summary": "Correlation matrix between features"}},
+            "/api/sample/{idx}": {"get": {"summary": "Get a dataset sample by index"}},
+            "/api/model_info": {"get": {"summary": "Information about trained models"}},
         }
     })
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  Servidor Web - Evaluación de Crudo Petrolífero")
+    print("  Web Server - Crude Oil Evaluation")
     print("=" * 60)
-    print("  Cargando modelos...")
+    print("  Loading models...")
     load_models()
-    print("  Servidor iniciando en http://127.0.0.1:5001")
+    print("  Server starting on http://127.0.0.1:5001")
     print("=" * 60)
     app.run(host="127.0.0.1", port=5001, debug=True)
