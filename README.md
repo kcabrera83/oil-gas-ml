@@ -2,6 +2,20 @@
 
 Comprehensive Machine Learning system for the study, classification, and economic evaluation of crude oil based on its physical-chemical properties. Includes an interactive web server with dashboard and prediction form.
 
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| ML Framework | **scikit-learn** (≥1.3) |
+| Classification | RandomForest, GradientBoosting, SVM, KNN, MLP |
+| Regression | RandomForest, GradientBoosting, ExtraTrees, SVR, Ridge, ElasticNet |
+| Multi-output | GradientBoosting (MultiOutputRegressor) |
+| Data Processing | pandas, numpy, joblib |
+| Visualization | matplotlib, seaborn |
+| Web Server | FastAPI + uvicorn |
+| Monitoring | prometheus-fastapi-instrumentator |
+| Validation | pydantic v2 |
+
 ## Features
 
 - **Quality Classification**: Automatically determines the crude oil quality class (premium, standard, inferior, dehydrated)
