@@ -240,7 +240,7 @@ async def api_sample(idx: int):
     return dataset.iloc[idx].to_dict()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import uvicorn
     print("Iniciando servidor de evaluacion de crudo...")
     uvicorn.run(app, host="0.0.0.0", port=5001, log_level="info")

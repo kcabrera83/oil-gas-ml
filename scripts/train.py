@@ -17,7 +17,7 @@ def main():
     pass
 
     # 1. Generar dataset
-    print("\n[1/6] Generando dataset sintético...")
+    print("\n[1/6] Generando dataset sintÃ©tico...")
     gen = CrudeDataGenerator(seed=2024)
     df = gen.generate(n_samples=3000)
     gen.save(df, path="data/crude_dataset.csv")
@@ -25,7 +25,7 @@ def main():
     print(f"      Tipos: {df['crude_type'].value_counts().to_dict()}")
     print(f"      Calidad: {df['quality_class'].value_counts().to_dict()}")
 
-    # 2. Visualización exploratoria
+    # 2. VisualizaciÃ³n exploratoria
     print("\n[2/6] Generando visualizaciones exploratorias...")
     viz = CrudeVisualizer(output_dir="outputs/plots")
     viz.plot_data_distribution(df)
@@ -36,20 +36,20 @@ def main():
     print("\n[3/6] Preprocesando datos...")
     preprocessor = CrudePreprocessor(scaler_type="robust", test_size=0.2)
 
-    # Clasificación
+    # ClasificaciÃ³n
     X_cls_train, X_cls_test, y_cls_train, y_cls_test, le_quality = preprocessor.prepare_classification(
         df.copy(), target_col="quality_class"
     )
     class_names = le_quality.classes_
-    print(f"      Clasificación: {X_cls_train.shape[0]} train, {X_cls_test.shape[0]} test")
+    print(f"      ClasificaciÃ³n: {X_cls_train.shape[0]} train, {X_cls_test.shape[0]} test")
     print(f"      Clases: {list(class_names)}")
 
-    # Regresión - valor de mercado
+    # RegresiÃ³n - valor de mercado
     preprocessor_reg = CrudePreprocessor(scaler_type="robust", test_size=0.2)
     X_reg_train, X_reg_test, y_reg_train, y_reg_test = preprocessor_reg.prepare_regression(
         df.copy(), target_col="market_value_usd_bbl"
     )
-    print(f"      Regresión (valor): {X_reg_train.shape[0]} train, {X_reg_test.shape[0]} test")
+    print(f"      RegresiÃ³n (valor): {X_reg_train.shape[0]} train, {X_reg_test.shape[0]} test")
 
     # 4. Entrenamiento de clasificadores
     print("\n[4/6] Entrenando clasificadores de calidad...")
@@ -70,7 +70,7 @@ def main():
     for name, reg in reg_models.items():
         metrics = evaluator.evaluate_regression(y_reg_test, reg.predict(X_reg_test), name)
         reg_results[name] = metrics
-        print(f"      {name:25s} | R²: {metrics['R2']:.4f} | RMSE: {metrics['RMSE']:.4f}")
+        print(f"      {name:25s} | RÂ²: {metrics['R2']:.4f} | RMSE: {metrics['RMSE']:.4f}")
 
     # 6. Predictor multi-output
     print("\n[6/6] Entrenando predictor multi-output (valor + rendimiento)...")
@@ -80,7 +80,7 @@ def main():
     qp.train(X_multi_train, y_multi_train, target_names=targets)
     multi_results = qp.evaluate(X_multi_test, y_multi_test)
     for target_name, metrics in multi_results.items():
-        print(f"      {target_name:30s} | R²: {metrics['R2']:.4f} | RMSE: {metrics['RMSE']:.4f}")
+        print(f"      {target_name:30s} | RÂ²: {metrics['R2']:.4f} | RMSE: {metrics['RMSE']:.4f}")
 
     # Guardar mejores modelos
     print("\n[GUARDANDO] Mejores modelos...")
@@ -95,8 +95,8 @@ def main():
     qp.save("outputs/models/quality_predictor.pkl")
     pass
 
-    # Visualización de resultados
-    print("\n[VISUALIZACIONES] Generando gráficos de resultados...")
+    # VisualizaciÃ³n de resultados
+    print("\n[VISUALIZACIONES] Generando grÃ¡ficos de resultados...")
     cls_comparison = {k: v["metrics"] for k, v in evaluator.results.items() if v["type"] == "classification"}
     reg_comparison = {k: v["metrics"] for k, v in evaluator.results.items() if v["type"] == "regression"}
     if cls_comparison:
@@ -110,12 +110,12 @@ def main():
 
     best_reg = reg_models[best_reg_name]
     y_pred_reg = best_reg.predict(X_reg_test)
-    viz.plot_regression_results(y_reg_test, y_pred_reg, title=f"Predicción de Valor de Mercado ({best_reg_name})")
+    viz.plot_regression_results(y_reg_test, y_pred_reg, title=f"PredicciÃ³n de Valor de Mercado ({best_reg_name})")
 
     importance = best_clf.get_feature_importance()
     if importance is not None:
         feature_names = preprocessor.get_feature_names()
-        viz.plot_feature_importance(importance, feature_names, f"Importancia de Características ({best_cls_name})")
+        viz.plot_feature_importance(importance, feature_names, f"Importancia de CaracterÃ­sticas ({best_cls_name})")
 
     # Perfil de ejemplo
     sample = df.iloc[0]
@@ -129,5 +129,5 @@ def main():
     pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

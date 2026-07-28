@@ -19,44 +19,44 @@ def main():
     df = gen.generate(n_samples=3000)
     viz = CrudeVisualizer(output_dir="outputs/plots")
 
-    print("\n[1] ANÁLISIS EXPLORATORIO")
+    print("\n[1] ANÃLISIS EXPLORATORIO")
     print("-" * 40)
-    print(f"\n  Estadísticas descriptivas:")
+    print(f"\n  EstadÃ­sticas descriptivas:")
     print(df.describe().round(2).to_string())
 
-    print(f"\n  Distribución por tipo:")
+    print(f"\n  DistribuciÃ³n por tipo:")
     for ctype, count in df["crude_type"].value_counts().items():
         pct = count / len(df) * 100
         print(f"    {ctype:15s}: {count:5d} ({pct:.1f}%)")
 
-    print(f"\n  Distribución por calidad:")
+    print(f"\n  DistribuciÃ³n por calidad:")
     for qclass, count in df["quality_class"].value_counts().items():
         pct = count / len(df) * 100
         print(f"    {qclass:15s}: {count:5d} ({pct:.1f}%)")
 
-    print("\n[2] ENTRENAMIENTO Y VALIDACIÓN CRUZADA")
+    print("\n[2] ENTRENAMIENTO Y VALIDACIÃ“N CRUZADA")
     print("-" * 40)
 
     preprocessor = CrudePreprocessor(scaler_type="robust", test_size=0.2)
     X_cls_train, X_cls_test, y_cls_train, y_cls_test, le = preprocessor.prepare_classification(df.copy())
     class_names = le.classes_
 
-    print("\n  Clasificación (validación cruzada 5-fold):")
+    print("\n  ClasificaciÃ³n (validaciÃ³n cruzada 5-fold):")
     for name in CrudeClassifier.MODELS:
         clf = CrudeClassifier(model_name=name)
         cv_results = clf.cross_validate(X_cls_train, y_cls_train, cv=5)
-        print(f"    {name:25s} | F1: {cv_results['mean_f1']:.4f} ± {cv_results['std_f1']:.4f}")
+        print(f"    {name:25s} | F1: {cv_results['mean_f1']:.4f} Â± {cv_results['std_f1']:.4f}")
 
     preprocessor_reg = CrudePreprocessor(scaler_type="robust", test_size=0.2)
     X_reg_train, X_reg_test, y_reg_train, y_reg_test = preprocessor_reg.prepare_regression(df.copy())
 
-    print("\n  Regresión (validación cruzada 5-fold):")
+    print("\n  RegresiÃ³n (validaciÃ³n cruzada 5-fold):")
     for name in CrudeRegressor.MODELS:
         reg = CrudeRegressor(model_name=name)
         cv_results = reg.cross_validate(X_reg_train, y_reg_train, cv=5)
-        print(f"    {name:25s} | R²: {cv_results['mean_r2']:.4f} ± {cv_results['std_r2']:.4f}")
+        print(f"    {name:25s} | RÂ²: {cv_results['mean_r2']:.4f} Â± {cv_results['std_r2']:.4f}")
 
-    print("\n[3] EVALUACIÓN EN TEST SET")
+    print("\n[3] EVALUACIÃ“N EN TEST SET")
     print("-" * 40)
 
     evaluator = ModelEvaluator()
@@ -82,16 +82,16 @@ def main():
         reg.train(X_reg_train, y_reg_train)
         y_pred = reg.predict(X_reg_test)
         metrics = evaluator.evaluate_regression(y_reg_test, y_pred, name)
-        print(f"    {name:25s} | R²: {metrics['R2']:.4f} | RMSE: {metrics['RMSE']:.4f}")
+        print(f"    {name:25s} | RÂ²: {metrics['R2']:.4f} | RMSE: {metrics['RMSE']:.4f}")
         if metrics["R2"] > best_r2:
             best_r2 = metrics["R2"]
             best_reg_name = name
 
     print(f"\n  MEJORES MODELOS:")
     print(f"    Clasificador: {best_cls_name} (F1={best_f1:.4f})")
-    print(f"    Regresor:     {best_reg_name} (R²={best_r2:.4f})")
+    print(f"    Regresor:     {best_reg_name} (RÂ²={best_r2:.4f})")
 
-    print("\n[4] ANÁLISIS DE IMPORTANCIA")
+    print("\n[4] ANÃLISIS DE IMPORTANCIA")
     print("-" * 40)
     best_clf = CrudeClassifier(model_name=best_cls_name)
     best_clf.train(X_cls_train, y_cls_train, class_names)
@@ -100,7 +100,7 @@ def main():
 
     if importance is not None:
         sorted_idx = importance.argsort()[::-1]
-        print("\n  Top 10 características más importantes:")
+        print("\n  Top 10 caracterÃ­sticas mÃ¡s importantes:")
         for rank, idx in enumerate(sorted_idx[:10], 1):
             print(f"    {rank:2d}. {feature_names[idx]:30s}: {importance[idx]:.4f}")
 
@@ -133,5 +133,5 @@ def main():
     pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

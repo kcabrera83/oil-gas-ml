@@ -116,7 +116,7 @@ class CrudeDataGenerator:
         return filepath
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     gen = CrudeDataGenerator(seed=2024)
     df = gen.generate(n_samples=3000)
     path = gen.save(df)

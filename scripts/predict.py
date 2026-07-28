@@ -32,7 +32,7 @@ def predict_sample(sample_data: dict):
     multi_pred = predictor.predict(X)
 
     print(f"\n  Tipo de crudo (input):       {sample_data.get('crude_type', 'N/A')}")
-    print(f"  API Gravity:                  {sample_data.get('api_gravity', 'N/A')} °API")
+    print(f"  API Gravity:                  {sample_data.get('api_gravity', 'N/A')} Â°API")
     print(f"  Viscosidad:                   {sample_data.get('viscosity_cp', 'N/A')} cP")
     print(f"  Azufre:                       {sample_data.get('sulfur_content_pct', 'N/A')} %")
     print(f"\n  --- RESULTADOS ---")
@@ -83,5 +83,5 @@ def main():
     print(f"\n  Resultado guardado en: {output_path}")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
