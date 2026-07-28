@@ -1,5 +1,3 @@
-"""Visualización de datos y resultados de modelos de crudo."""
-
 import numpy as np
 import pandas as pd
 import matplotlib

@@ -1,10 +1,8 @@
-"""Script principal: Entrenamiento de modelos de ML para crudo petrolífero."""
-
 import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import sys; sys.path.append(str(Path(__file__).resolve().parent))
 
 from oil_gas_ml.data_generator import CrudeDataGenerator
 from oil_gas_ml.utils.preprocessor import CrudePreprocessor
@@ -16,13 +14,11 @@ from oil_gas_ml.models.quality_predictor import QualityPredictor
 
 
 def main():
-    print("=" * 70)
-    print("  SISTEMA DE MACHINE LEARNING - EVALUACIÓN DE CRUDO PETROLÍFERO")
-    print("=" * 70)
+    pass
 
     # 1. Generar dataset
     print("\n[1/6] Generando dataset sintético...")
-    gen = CrudeDataGenerator(seed=42)
+    gen = CrudeDataGenerator(seed=2024)
     df = gen.generate(n_samples=3000)
     gen.save(df, path="data/crude_dataset.csv")
     print(f"      Dataset: {len(df)} muestras, {df.shape[1]} columnas")
@@ -34,7 +30,7 @@ def main():
     viz = CrudeVisualizer(output_dir="outputs/plots")
     viz.plot_data_distribution(df)
     viz.plot_correlation_matrix(df)
-    print("      Gráficos guardados en outputs/plots/")
+    pass
 
     # 3. Preprocesamiento
     print("\n[3/6] Preprocesando datos...")
@@ -97,7 +93,7 @@ def main():
     print(f"      Mejor regresor: {best_reg_name}")
 
     qp.save("outputs/models/quality_predictor.pkl")
-    print("      Predictor multi-output guardado")
+    pass
 
     # Visualización de resultados
     print("\n[VISUALIZACIONES] Generando gráficos de resultados...")
@@ -126,13 +122,11 @@ def main():
     viz.plot_crude_profile(sample, sample_name="Muestra #0")
 
     print("\n" + "=" * 70)
-    print("  ENTRENAMIENTO COMPLETADO EXITOSAMENTE")
-    print("=" * 70)
+    pass
     print("\n  Archivos generados:")
-    print("    - data/crude_dataset.csv")
-    print("    - outputs/plots/*.png")
-    print("    - outputs/models/*.pkl")
-    print("=" * 70)
+    pass
+    pass
+    pass
 
 
 if __name__ == "__main__":

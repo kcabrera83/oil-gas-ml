@@ -1,9 +1,7 @@
-"""Script de evaluación completa del sistema."""
-
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import sys; sys.path.append(str(Path(__file__).resolve().parent))
 
 from oil_gas_ml.data_generator import CrudeDataGenerator
 from oil_gas_ml.utils.preprocessor import CrudePreprocessor
@@ -15,11 +13,9 @@ from oil_gas_ml.models.quality_predictor import QualityPredictor
 
 
 def main():
-    print("=" * 70)
-    print("  EVALUACIÓN COMPLETA DEL SISTEMA ML - CRUDO PETROLÍFERO")
-    print("=" * 70)
+    pass
 
-    gen = CrudeDataGenerator(seed=42)
+    gen = CrudeDataGenerator(seed=2024)
     df = gen.generate(n_samples=3000)
     viz = CrudeVisualizer(output_dir="outputs/plots")
 
@@ -130,12 +126,11 @@ def main():
     if reg_comparison:
         viz.plot_model_comparison(reg_comparison, metric_filter={"R2", "RMSE"})
 
-    print("  Modelos guardados en outputs/models/")
-    print("  Gráficos guardados en outputs/plots/")
+    pass
+    pass
 
     print("\n" + "=" * 70)
-    print("  EVALUACIÓN COMPLETADA")
-    print("=" * 70)
+    pass
 
 
 if __name__ == "__main__":

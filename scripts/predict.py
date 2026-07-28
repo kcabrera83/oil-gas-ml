@@ -1,11 +1,9 @@
-"""Script de predicción: Evaluar nuevas muestras de crudo."""
-
 import sys
 import json
 import numpy as np
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import sys; sys.path.append(str(Path(__file__).resolve().parent))
 
 from oil_gas_ml.utils.preprocessor import CrudePreprocessor
 from oil_gas_ml.models.crude_classifier import CrudeClassifier
@@ -14,9 +12,7 @@ from oil_gas_ml.models.quality_predictor import QualityPredictor
 
 
 def predict_sample(sample_data: dict):
-    print("=" * 60)
-    print("  PREDICCIÓN DE CRUDO PETROLÍFERO")
-    print("=" * 60)
+    pass
 
     classifier = CrudeClassifier.load("outputs/models/crude_classifier_best.pkl")
     regressor = CrudeRegressor.load("outputs/models/crude_regressor_best.pkl")
@@ -47,7 +43,6 @@ def predict_sample(sample_data: dict):
     print(f"\n  Valor de mercado estimado:    ${value_pred[0]:.2f} USD/barril")
     print(f"  Rendimiento estimado:         {multi_pred[0][0]:.2f}%")
     print(f"  Valor estimado (multi):       ${multi_pred[0][1]:.2f} USD/barril")
-    print("=" * 60)
 
     return {
         "quality_class": classifier.class_names[quality_pred[0]],

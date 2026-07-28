@@ -1,5 +1,3 @@
-"""FastAPI web server for the crude oil ML evaluation system."""
-
 import sys
 import numpy as np
 import pandas as pd
@@ -10,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sys; sys.path.append(str(Path(__file__).resolve().parent))
 
 from oil_gas_ml.data_generator import CrudeDataGenerator
 from oil_gas_ml.utils.preprocessor import CrudePreprocessor
@@ -18,11 +16,7 @@ from oil_gas_ml.models.crude_classifier import CrudeClassifier
 from oil_gas_ml.models.crude_regressor import CrudeRegressor
 from oil_gas_ml.models.quality_predictor import QualityPredictor
 
-app = FastAPI(
-    title="Oil Gas ML - Crude Oil Evaluation",
-    description="ML-based crude oil quality classification, market value regression, and yield prediction",
-    version="1.0.0",
-)
+app = FastAPI(title="Oil & Gas ML", version="0.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,17 +29,32 @@ app.add_middleware(
 Instrumentator().instrument(app).expose(app)
 
 models: dict[str, Any] = {}
+_model_loaded = False
 
 
 @app.on_event("startup")
 async def load_models():
-    global models
+    global models, _model_loaded
+    if _model_loaded:
+        return
+    _model_loaded = True
+    mpath = Path("outputs/models")
+    dpath = Path("data/crude_dataset.csv")
+    if not mpath.exists() or not dpath.exists():
+        print("  Modelos o data no encontrados, generando sinteticos...")
+        gen = CrudeDataGenerator(seed=2024)
+        dataset = gen.generate(n_samples=3000)
+        preprocessor = CrudePreprocessor(scaler_type="robust", random_state=1389)
+        preprocessor.fit(dataset)
+        models["dataset"] = dataset
+        models["preprocessor"] = preprocessor
+        return
     try:
-        classifier = CrudeClassifier.load("outputs/models/crude_classifier_best.pkl")
-        regressor = CrudeRegressor.load("outputs/models/crude_regressor_best.pkl")
-        predictor = QualityPredictor.load("outputs/models/quality_predictor.pkl")
-        dataset = pd.read_csv("data/crude_dataset.csv")
-        preprocessor = CrudePreprocessor(scaler_type="robust")
+        classifier = CrudeClassifier.load(str(mpath / "crude_classifier_best.pkl"))
+        regressor = CrudeRegressor.load(str(mpath / "crude_regressor_best.pkl"))
+        predictor = QualityPredictor.load(str(mpath / "quality_predictor.pkl"))
+        dataset = pd.read_csv(str(dpath))
+        preprocessor = CrudePreprocessor(scaler_type="robust", random_state=1389)
         preprocessor.fit(dataset)
         models["classifier"] = classifier
         models["regressor"] = regressor
@@ -53,14 +62,7 @@ async def load_models():
         models["preprocessor"] = preprocessor
         models["dataset"] = dataset
     except Exception as e:
-        print(f"  Error loading models: {e}")
-        print("  Running with synthetic data fallback.")
-        gen = CrudeDataGenerator(seed=42)
-        dataset = gen.generate(n_samples=3000)
-        preprocessor = CrudePreprocessor(scaler_type="robust")
-        preprocessor.fit(dataset)
-        models["dataset"] = dataset
-        models["preprocessor"] = preprocessor
+        print(f"  Error: {e}")
 
 
 class PredictRequest(BaseModel):
@@ -240,8 +242,6 @@ async def api_sample(idx: int):
 
 if __name__ == "__main__":
     import uvicorn
-    print("=" * 60)
-    print("  FastAPI Server - Crude Oil Evaluation")
-    print("=" * 60)
-    uvicorn.run(app, host="0.0.0.0", port=5001)
+    print("Iniciando servidor de evaluacion de crudo...")
+    uvicorn.run(app, host="0.0.0.0", port=5001, log_level="info")
 

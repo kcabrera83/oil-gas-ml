@@ -1,32 +1,10 @@
-"""Generador de dataset sintético de crudo petrolífero con propiedades reales."""
-
 import numpy as np
 import pandas as pd
 from pathlib import Path
 
 
 class CrudeDataGenerator:
-    """
-    Genera datos sintéticos realistas de crudo petrolífero basado en
-    propiedades físicas y químicas documentadas en literatura petrolera.
-
-    Propiedades incluidas:
-    - API Gravity (°API): densidad relativa del crudo
-    - Viscosidad (cP): resistencia al flujo
-    - Sulfur Content (%): contenido de azufre
-    - Water Content (%): contenido de agua (BS&W)
-    - Asphaltene Content (%): contenido de asfaltenos
-    - Total Acid Number (TAN mg KOH/g): acidez total
-    - Pour Point (°C): punto de fluidez
-    - Flash Point (°C): punto de inflamabilidad
-    - Density (kg/m³): densidad absoluta
-    - Reid Vapor Pressure (kPa): presión de vapor
-    - Salt Content (PTB): contenido de sal
-    - Metal Content (ppm): contenido metálico total
-    - Nitrogen Content (%): contenido de nitrógeno
-    - Carbon Residue (%): residuo de carbono
-    """
-
+    # rangos tipicos segun tipo de crudo (literatura SPE)
     CRUDE_TYPES = {
         "liviano": {"api_range": (35, 55), "visc_range": (1, 10), "sulf_range": (0.1, 0.5)},
         "mediano": {"api_range": (25, 35), "visc_range": (10, 100), "sulf_range": (0.5, 1.5)},
@@ -34,6 +12,7 @@ class CrudeDataGenerator:
         "extra_pesado": {"api_range": (5, 10), "visc_range": (1000, 100000), "sulf_range": (3.0, 6.0)},
     }
 
+    # thresholds para clasificar calidad
     QUALITY_CLASSES = {
         "premium": {"api_min": 35, "sulf_max": 0.5, "visc_max": 20},
         "estandar": {"api_min": 22, "sulf_max": 2.0, "visc_max": 500},
@@ -41,7 +20,7 @@ class CrudeDataGenerator:
         "deshidratado": {"api_min": 5, "sulf_max": 6.0, "visc_max": 100000},
     }
 
-    def __init__(self, seed=42):
+    def __init__(self, seed=2024):
         self.rng = np.random.default_rng(seed)
 
     def _gen_param(self, low, high, n, log_scale=False):
@@ -138,8 +117,7 @@ class CrudeDataGenerator:
 
 
 if __name__ == "__main__":
-    gen = CrudeDataGenerator(seed=42)
+    gen = CrudeDataGenerator(seed=2024)
     df = gen.generate(n_samples=3000)
-    path = gen.save(df, path="data/crude_dataset.csv")
-    print(f"Dataset generado: {len(df)} muestras en {path}")
-    print(df.describe())
+    path = gen.save(df)
+    print(f"Listo: {len(df)} muestras en {path}")

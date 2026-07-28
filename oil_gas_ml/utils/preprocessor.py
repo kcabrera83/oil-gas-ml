@@ -1,5 +1,3 @@
-"""Preprocesamiento de datos de crudo petrolífero."""
-
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, LabelEncoder, RobustScaler
@@ -21,7 +19,7 @@ DERIVED_FEATURES = [
 
 
 class CrudePreprocessor:
-    def __init__(self, scaler_type="robust", test_size=0.2, random_state=42):
+    def __init__(self, scaler_type="robust", test_size=0.2, random_state=1389):
         self.scaler_type = scaler_type
         self.test_size = test_size
         self.random_state = random_state
