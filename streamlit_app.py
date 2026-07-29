@@ -1,50 +1,52 @@
-import streamlit as st, joblib, numpy as np, matplotlib.pyplot as plt
-from pathlib import Path; import sys; sys.path.insert(0, str(Path(__file__).parent))
 
-st.set_page_config(page_title="Crude Oil Classifier", layout="centered")
-st.title("Crude Oil Classifier")
+import streamlit as st
+import numpy as np
+from pydantic import BaseModel, Field
+from typing import Dict, Any
+import joblib, os
 
-path = Path(__file__).parent / 'outputs' / 'models'
-models = {}
-models['grade'] = joblib.load(path / 'quality_classifier.pkl')
-models['value'] = joblib.load(path / 'market_value_model.pkl')
+st.set_page_config(page_title="Oil & Gas ML", page_icon=":bar_chart:", layout="wide")
+st.title("Oil & Gas ML")
 
-def pipeline(x):
-    out = {}
-    m = models['grade']
-    if isinstance(m, dict):
-        p = m['model'].predict(m['scaler'].transform(x))
-        out['grade'] = m['label_encoder'].inverse_transform(p)[0] if 'label_encoder' in m else float(p[0])
-    else:
-        out['grade'] = float(m.predict(x)[0])
-    m = models['value']
-    if isinstance(m, dict):
-        p = m['model'].predict(m['scaler'].transform(x))
-        out['value'] = m['label_encoder'].inverse_transform(p)[0] if 'label_encoder' in m else float(p[0])
-    else:
-        out['value'] = float(m.predict(x)[0])
-    return out
+class Payload(BaseModel):
+    features: Dict[str, float] = Field(default_factory=dict)
 
-with st.form('inputs'):
-    st.subheader('Input Parameters')
-    cols = st.columns(2)
-    api = cols[0].slider('Api', 10, 50, 30)
-    visc = cols[1].slider('Visc', 1, 1000, 500)
-    sulfur = cols[0].slider('Sulfur', 0, 5, 2)
-    bsw = cols[1].slider('Bsw', 0, 10, 5)
-    asph = cols[0].slider('Asph', 0, 20, 10)
-    tan = cols[1].slider('Tan', 0, 5, 2)
-    pour = cols[0].slider('Pour', -40, 30, -5)
-    flash = cols[1].slider('Flash', 20, 120, 70)
-    density = cols[0].slider('Density', 800, 1000, 900)
-    rvp = cols[1].slider('Rvp', 2, 15, 8)
-    submitted = st.form_submit_button('Run', type='primary', use_container_width=True)
+class InferenceEngine:
+    def __init__(self):
+        self._models: Dict[str, Any] = {}
+        self._load()
+    
+    def _load(self):
+        for f in os.listdir("outputs/models"):
+            if f.endswith(".pkl"):
+                data = joblib.load(os.path.join("outputs/models", f))
+                self._models[f.replace(".pkl", "")] = data
+    
+    def predict(self, model_key: str, features: dict) -> float:
+        data = self._models.get(model_key)
+        if not data:
+            raise ValueError(f"Model {model_key} not found")
+        feats = data.get("feature_names", list(features.keys()))
+        X = np.array([features.get(f, 0) for f in feats]).reshape(1, -1)
+        if data.get("scaler"):
+            X = data["scaler"].transform(X)
+        return data["model"].predict(X)[0]
 
-if submitted:
-    results = pipeline(np.array([[api, visc, sulfur, bsw, asph, tan, pour, flash, density, rvp]]))
+engine = InferenceEngine()
+
+with st.sidebar:
+    st.header("Model Selection")
+    model_key = st.selectbox("Choose model", list(engine._models.keys()) or ["default"])
     st.divider()
-    st.subheader('Results')
-    mc = st.columns(len(results))
-    for i, (k, v) in enumerate(results.items()):
-        val = str(v) if isinstance(v, str) else f'{v:,.2f}'
-        mc[i].metric(k.replace('_',' ').title(), val)
+    st.caption("Crude oil property prediction: API, viscosity, sulfur content, and quality grading")
+
+data = engine._models.get(model_key, {})
+feats = data.get("feature_names", [f"f{i}" for i in range(4)])
+cols = st.columns(3)
+inputs = {}
+for i, f in enumerate(feats):
+    with cols[i % 3]:
+        inputs[f] = st.number_input(f.replace("_", " ").title(), value=0.0, key=f)
+if st.button("Run inference", type="primary"):
+    result = engine.predict(model_key, inputs)
+    st.metric("Prediction", f"{result:.4f}")

@@ -30,3 +30,7 @@ outputs/plots/*.png
 
 # Streamlit Cloud model files
 !outputs/models/*.pkl
+
+# Security & MLflow
+.env
+mlflow.db
