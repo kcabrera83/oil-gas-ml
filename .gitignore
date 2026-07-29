@@ -34,3 +34,6 @@ outputs/plots/*.png
 # Security & MLflow
 .env
 mlflow.db
+
+# Docs build
+site/
